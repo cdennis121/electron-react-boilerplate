@@ -1,0 +1,79 @@
+---
+description: rules for development.
+globs: 
+alwaysApply: true
+---
+# Development Rules and Guidelines for 365 Management App
+
+## Overview
+
+This document outlines the coding conventions, file structure, frameworks, and development rules to keep the team on track during the implementation of the 365 Management App project.
+
+## Frameworks & Technologies
+
+- **UI Framework**: Electron with React (primary approach).
+- **Secure Storage**: Options include Windows DPAPI or Electron secure store for handling access and refresh tokens.
+- **Backend & API**: Node.js (if required) with TypeScript for backend scripts and integrations.
+- **Testing**: Jest for unit testing, and integration testing tools as needed.
+
+## File Structure & Organization
+
+- **Root Directory**:
+  - README.md: Project overview and setup instructions.
+  - projectbase.md: Project requirements, features, and design decisions.
+  - TODO.md: Task list for project development.
+  - DEVELOPMENT_RULES.md: This document.
+  - INDEX.md: Codebase index.
+  - package.json, tsconfig.json, etc.: Configuration and dependency files.
+
+- **src/**: Contains all source code for the application.
+  - Organize components, modules, and related files in subdirectories.
+
+- **assets/**: Contains images, icons, and other static assets.
+
+- **release/**: For production-ready builds and release files.
+
+- **.vscode/**: VSCode specific settings and configurations.
+
+## Coding Conventions
+
+- Use clear, descriptive names for files, components, and variables.
+- Follow a consistent code style using ESLint and Prettier. Configuration is provided in .eslintrc.js and .editorconfig.
+- Write modular, reusable code with comments where necessary.
+- Ensure every new component/module has corresponding unit tests.
+
+## File Creation & Commit Guidelines
+
+- **New Files**: When creating new files, follow the established directory structure. If adding a new feature, create a subdirectory within "src/" and ensure that related components (logic, tests, styles) are grouped together.
+- **Commit Messages**: Use clear and concise commit messages that describe the change. Follow the format: `[feature/fix/docs]: Short description of the change`.
+- **Code Reviews**: All code must pass reviews and adhere to the coding standards as per the ESLint configuration.
+
+## Branching & Merging
+
+- Use feature branches for new features (branch name format: `feature/<feature-name>`).
+- Use bugfix branches for fixes (branch name format: `bugfix/<bug-description>`).
+- Merge into the `main` branch only after successful code review and passing tests.
+
+## Testing & Quality Assurance
+
+- Write unit tests for all new features using Jest.
+- Integration tests should be performed before merging major features to ensure overall system stability.
+- Continuous integration setup (if applicable) should run the test suite on every commit.
+
+## Documentation
+
+- Update the README.md with project instructions whenever changes affect setup or functionality.
+- Ensure projectbase.md and DEVELOPMENT_RULES.md are kept current with latest requirements and guidelines.
+- Document key API endpoints and modules in their respective files or in a separate documentation folder if needed.
+
+## Task Tracking
+
+- Use the TODO.md file to track progress on features, bug fixes, and other tasks.
+- Regularly update the TODO list to reflect completed tasks and new tasks identified during development.
+
+## Code Review & Audit
+
+- Each commit should be reviewed by at least one other team member.
+- Utilize audit logs and commit history to track changes and maintain accountability.
+
+By following these guidelines, the team can maintain a high level of code quality, ensure consistency across the project, and facilitate smooth collaboration. 
