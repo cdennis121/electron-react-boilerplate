@@ -3,6 +3,7 @@ import Users from './Users';
 import HuntGroups from './HuntGroups';
 import CallQueues from './CallQueues';
 import CallHistory from './CallHistory';
+import CallFlows from './CallFlows';
 import Audio from './Audio';
 import Settings from './Settings';
 
@@ -26,6 +27,9 @@ function Layout() {
           <Link to="/call-history" className="nav-link">
             Call History
           </Link>
+          <Link to="/call-flows" className="nav-link">
+            Call Flows
+          </Link>
           <Link to="/audio" className="nav-link">
             Audio
           </Link>
@@ -43,6 +47,7 @@ function Layout() {
           <Route path="/hunt-groups" element={<HuntGroups />} />
           <Route path="/call-queues" element={<CallQueues />} />
           <Route path="/call-history" element={<CallHistory />} />
+          <Route path="/call-flows" element={<CallFlows />} />
           <Route path="/audio" element={<Audio />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
