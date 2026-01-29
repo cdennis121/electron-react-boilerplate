@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import { apiClient } from './apiClient';
 
 class AppUpdater {
   constructor() {
@@ -29,6 +30,69 @@ ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
+});
+
+// API IPC Handlers
+ipcMain.handle('api-set-settings', async (_event, settings) => {
+  apiClient.setSettings(settings);
+  return { success: true };
+});
+
+ipcMain.handle('api-get', async (_event, url) => {
+  try {
+    const data = await apiClient.get(url);
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('api-post', async (_event, url, data) => {
+  try {
+    const response = await apiClient.post(url, data);
+    return { success: true, data: response };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('api-put', async (_event, url, data) => {
+  try {
+    const response = await apiClient.put(url, data);
+    return { success: true, data: response };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('api-delete', async (_event, url) => {
+  try {
+    const data = await apiClient.delete(url);
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('api-patch', async (_event, url, data) => {
+  try {
+    const response = await apiClient.patch(url, data);
+    return { success: true, data: response };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('download-file', async (_event, url, filename) => {
+  try {
+    if (mainWindow) {
+      mainWindow.webContents.downloadURL(url);
+      return { success: true };
+    }
+    return { success: false, error: 'No window available' };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 });
 
 if (process.env.NODE_ENV === 'production') {
