@@ -13,6 +13,7 @@ import { getSelectedCustomer, clearSelectedCustomer, getApiSettings } from '../u
 function Layout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState<string | null>(null);
   const [currentCustomerName, setCurrentCustomerName] = useState<string>('');
 
@@ -102,7 +103,23 @@ function Layout() {
 
   // Show login page if not logged in
   if (!isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+    if (showSettings) {
+      return (
+        <div className="settings-standalone">
+          <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+            <button 
+              className="btn-secondary" 
+              onClick={() => setShowSettings(false)}
+              style={{ marginBottom: '20px' }}
+            >
+              ← Back to Login
+            </button>
+            <Settings />
+          </div>
+        </div>
+      );
+    }
+    return <Login onLogin={handleLogin} onOpenSettings={() => setShowSettings(true)} />;
   }
 
   return (

@@ -2295,3 +2295,30 @@ input:checked + .slider.loading:before {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
+
+/* Settings Standalone Page (when accessed from Login) */
+.settings-standalone {
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.settings-standalone::-webkit-scrollbar {
+  width: 10px;
+}
+
+.settings-standalone::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.settings-standalone::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+}
+
+.settings-standalone::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}

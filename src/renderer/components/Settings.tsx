@@ -126,21 +126,7 @@ function Settings() {
               value={settings.apiUrl}
               onChange={handleInputChange}
               className="input-field"
-              placeholder="https://api.callswitchone.com/voip/user"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="authFor">X-Auth-For:</label>
-            <input
-              type="text"
-              id="authFor"
-              name="authFor"
-              value={settings.authFor}
-              onChange={handleInputChange}
-              className="input-field"
-              placeholder="Enter X-Auth-For value"
+              placeholder="https://api.callswitchone.com"
               required
             />
           </div>

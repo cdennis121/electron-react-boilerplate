@@ -15,9 +15,10 @@ interface ApiResponse {
 
 interface LoginProps {
   onLogin: () => void;
+  onOpenSettings: () => void;
 }
 
-function Login({ onLogin }: LoginProps) {
+function Login({ onLogin, onOpenSettings }: LoginProps) {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<string>(''); // This will store the name
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -130,6 +131,14 @@ function Login({ onLogin }: LoginProps) {
         {error && (
           <div className="error-message">
             {error}
+          </div>
+        )}
+
+        {error && error.includes('API settings not configured') && (
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button className="btn-primary" onClick={onOpenSettings}>
+              Open Settings
+            </button>
           </div>
         )}
 
