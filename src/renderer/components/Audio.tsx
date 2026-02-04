@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
+import { getAppFeatures } from '../utils/storage';
 
 interface Sound {
   name: string;
@@ -51,8 +52,12 @@ function Audio() {
     sounds: [] as string[]
   });
   const [soundSearchTerm, setSoundSearchTerm] = useState('');
+  const [features, setFeatures] = useState(getAppFeatures());
 
   useEffect(() => {
+    // Load feature settings
+    setFeatures(getAppFeatures());
+    
     if (activeTab === 'sounds') {
       fetchSounds();
     } else {
@@ -337,22 +342,24 @@ function Audio() {
         <div className="tab-content">
           {activeTab === 'sounds' && (
             <>
-              <div className="upload-section">
-                <input
-                  type="file"
-                  id="audio-upload"
-                  accept="audio/*"
-                  multiple
-                  style={{ display: 'none' }}
-                  onChange={handleFileSelect}
-                />
-                <button 
-                  className="btn-primary"
-                  onClick={() => document.getElementById('audio-upload')?.click()}
-                >
-                  Upload Audio Files
-                </button>
-              </div>
+              {features.enableAudioUpload && (
+                <div className="upload-section">
+                  <input
+                    type="file"
+                    id="audio-upload"
+                    accept="audio/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={handleFileSelect}
+                  />
+                  <button 
+                    className="btn-primary"
+                    onClick={() => document.getElementById('audio-upload')?.click()}
+                  >
+                    Upload Audio Files
+                  </button>
+                </div>
+              )}
               <div className="sounds-grid">
               {sounds.length > 0 ? (
                 sounds.map((sound) => (
@@ -397,14 +404,16 @@ function Audio() {
 
           {activeTab === 'playlists' && (
             <>
-              <div className="upload-section">
-                <button 
-                  className="btn-primary"
-                  onClick={() => setShowNewPlaylistModal(true)}
-                >
-                  Create New Playlist
-                </button>
-              </div>
+              {features.enablePlaylistManagement && (
+                <div className="upload-section">
+                  <button 
+                    className="btn-primary"
+                    onClick={() => setShowNewPlaylistModal(true)}
+                  >
+                    Create New Playlist
+                  </button>
+                </div>
+              )}
               <div className="playlists-list">
               {playlists.length > 0 ? (
                 playlists.map((playlist) => (

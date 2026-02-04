@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
+import { getAppFeatures } from '../utils/storage';
 
 interface UserStatus {
   uuid: string;
@@ -66,36 +67,48 @@ function Users() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [features, setFeatures] = useState(getAppFeatures());
 
   useEffect(() => {
+    // Load feature settings
+    setFeatures(getAppFeatures());
+    
     fetchUsers();
-    fetchUserStatuses();
+    if (features.enableUserStatus) {
+      fetchUserStatuses();
+    }
   }, []);
 
   useEffect(() => {
-    if (users.length > 0) {
+    if (users.length > 0 && features.enableUserAvailability) {
       fetchUserAvailabilities();
     }
-  }, [users]);
+  }, [users, features.enableUserAvailability]);
 
-  // Update status and availability every 60 seconds
+  // Update status and availability every 60 seconds if auto-refresh is enabled
   useEffect(() => {
+    if (!features.enableAutoRefresh) return;
+    
     const statusInterval = setInterval(() => {
-      fetchUserStatuses();
+      if (features.enableUserStatus) {
+        fetchUserStatuses();
+      }
     }, 60000);
 
     return () => clearInterval(statusInterval);
-  }, []);
+  }, [features.enableAutoRefresh, features.enableUserStatus]);
 
   useEffect(() => {
-    if (users.length > 0) {
-      const availabilityInterval = setInterval(() => {
+    if (!features.enableAutoRefresh || users.length === 0) return;
+    
+    const availabilityInterval = setInterval(() => {
+      if (features.enableUserAvailability) {
         fetchUserAvailabilities();
-      }, 60000);
+      }
+    }, 60000);
 
-      return () => clearInterval(availabilityInterval);
-    }
-  }, [users]);
+    return () => clearInterval(availabilityInterval);
+  }, [users, features.enableAutoRefresh, features.enableUserAvailability]);
 
   const fetchUsers = async () => {
     if (!initializeApiClient()) {
@@ -221,9 +234,11 @@ function Users() {
                 <div className="user-header">
                   <h3>{user.display_name}</h3>
                   <div className="user-header-badges">
-                    <span className={`status-badge status-${getUserStatus(user.uuid)}`}>
-                      {getUserStatus(user.uuid)}
-                    </span>
+                    {features.enableUserStatus && (
+                      <span className={`status-badge status-${getUserStatus(user.uuid)}`}>
+                        {getUserStatus(user.uuid)}
+                      </span>
+                    )}
                     <span className="extension-badge">Ext {user.extension}</span>
                   </div>
                 </div>
@@ -232,14 +247,18 @@ function Users() {
                     <span className="detail-label">Username:</span>
                     <span className="detail-value">{user.user_name}</span>
                   </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Timezone:</span>
-                    <span className="detail-value">{user.timezone}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Country:</span>
-                    <span className="detail-value">{user.country_code}</span>
-                  </div>
+                  {features.showTimezoneInfo && (
+                    <>
+                      <div className="detail-row">
+                        <span className="detail-label">Timezone:</span>
+                        <span className="detail-value">{user.timezone}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Country:</span>
+                        <span className="detail-value">{user.country_code}</span>
+                      </div>
+                    </>
+                  )}
                   <div className="user-features">
                     {user.call_recording && <span className="feature-badge">Recording</span>}
                     {user.call_encryption && <span className="feature-badge">Encrypted</span>}

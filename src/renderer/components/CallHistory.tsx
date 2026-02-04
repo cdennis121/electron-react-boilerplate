@@ -40,11 +40,13 @@ function CallHistory() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterAnswered, setFilterAnswered] = useState('all');
   const [downloadEnabled, setDownloadEnabled] = useState(false);
+  const [features, setFeatures] = useState(getAppFeatures());
 
   useEffect(() => {
     // Load feature settings
-    const features = getAppFeatures();
-    setDownloadEnabled(features.enableCallRecordingDownload);
+    const loadedFeatures = getAppFeatures();
+    setFeatures(loadedFeatures);
+    setDownloadEnabled(loadedFeatures.enableCallRecordingDownload);
     
     fetchCallHistory();
   }, []);
@@ -162,26 +164,28 @@ function CallHistory() {
             className="input-field"
           />
         </div>
-        <div className="filter-controls">
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="dropdown">
-            <option value="all">All Types</option>
-            <option value="outbound">Outbound</option>
-            <option value="inbound">Inbound</option>
-            <option value="internal">Internal</option>
-          </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="dropdown">
-            <option value="all">All Status</option>
-            <option value="answered">Answered</option>
-            <option value="busy">Busy</option>
-            <option value="no_answer">No Answer</option>
-            <option value="failed">Failed</option>
-          </select>
-          <select value={filterAnswered} onChange={(e) => setFilterAnswered(e.target.value)} className="dropdown">
-            <option value="all">All Calls</option>
-            <option value="answered">Answered Only</option>
-            <option value="unanswered">Unanswered Only</option>
-          </select>
-        </div>
+        {features.enableAdvancedFilters && (
+          <div className="filter-controls">
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="dropdown">
+              <option value="all">All Types</option>
+              <option value="outbound">Outbound</option>
+              <option value="inbound">Inbound</option>
+              <option value="internal">Internal</option>
+            </select>
+            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="dropdown">
+              <option value="all">All Status</option>
+              <option value="answered">Answered</option>
+              <option value="busy">Busy</option>
+              <option value="no_answer">No Answer</option>
+              <option value="failed">Failed</option>
+            </select>
+            <select value={filterAnswered} onChange={(e) => setFilterAnswered(e.target.value)} className="dropdown">
+              <option value="all">All Calls</option>
+              <option value="answered">Answered Only</option>
+              <option value="unanswered">Unanswered Only</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -201,6 +205,7 @@ function CallHistory() {
                   <th>Type</th>
                   <th>Status</th>
                   <th>Answered</th>
+                  {features.showCallCost && <th>Cost</th>}
                   <th>Recording</th>
                 </tr>
               </thead>
@@ -231,6 +236,9 @@ function CallHistory() {
                         {call.answered ? '✓' : '✗'}
                       </span>
                     </td>
+                    {features.showCallCost && (
+                      <td>${call.cost.toFixed(2)}</td>
+                    )}
                     <td>
                       {call.has_recording ? (
                         downloadEnabled ? (
@@ -252,7 +260,7 @@ function CallHistory() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center' }}>
+                  <td colSpan={features.showCallCost ? 8 : 7} style={{ textAlign: 'center' }}>
                     {searchTerm || filterType !== 'all' || filterStatus !== 'all' || filterAnswered !== 'all'
                       ? 'No calls match your filters.'
                       : 'No call history available for the last 48 hours.'}

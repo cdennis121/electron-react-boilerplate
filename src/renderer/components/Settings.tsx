@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { saveApiSettings, getApiSettings, ApiAuthSettings, saveAppFeatures, getAppFeatures } from '../utils/storage';
+import { saveApiSettings, getApiSettings, ApiAuthSettings, saveAppFeatures, getAppFeatures, AppFeatures } from '../utils/storage';
 
 const ADMIN_CODE = '1234';
 
@@ -14,7 +14,17 @@ function Settings() {
     authPassword: '',
     authUser: '',
   });
-  const [enableRecordingDownload, setEnableRecordingDownload] = useState(false);
+  const [features, setFeatures] = useState<AppFeatures>({
+    enableCallRecordingDownload: false,
+    enableAutoRefresh: true,
+    enableUserAvailability: true,
+    enableUserStatus: true,
+    showCallCost: false,
+    enableAudioUpload: true,
+    enablePlaylistManagement: true,
+    showTimezoneInfo: true,
+    enableAdvancedFilters: true,
+  });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
@@ -25,8 +35,8 @@ function Settings() {
     }
     
     // Load feature settings
-    const features = getAppFeatures();
-    setEnableRecordingDownload(features.enableCallRecordingDownload);
+    const loadedFeatures = getAppFeatures();
+    setFeatures(loadedFeatures);
   }, []);
 
   const handleAdminCodeSubmit = (e: React.FormEvent) => {
@@ -51,7 +61,7 @@ function Settings() {
     saveApiSettings(settings);
     
     // Save feature settings
-    saveAppFeatures({ enableCallRecordingDownload: enableRecordingDownload });
+    saveAppFeatures(features);
     
     // Update API client with new settings
     if (window.electron?.api) {
@@ -60,6 +70,14 @@ function Settings() {
     
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleFeatureToggle = (featureName: keyof AppFeatures) => {
+    setFeatures(prev => ({
+      ...prev,
+      [featureName]: !prev[featureName]
+    }));
+    setSaveSuccess(false);
   };
 
   if (!isAuthenticated) {
@@ -169,20 +187,182 @@ function Settings() {
             />
           </div>
 
-          <h2 style={{ marginTop: '30px' }}>Feature Settings</h2>
+          <h2 style={{ marginTop: '40px', marginBottom: '10px' }}>Feature Settings</h2>
+          <p style={{ marginBottom: '20px', color: '#7f8c8d' }}>
+            Enable or disable application features to customize your experience.
+          </p>
 
-          <div className="form-group checkbox-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={enableRecordingDownload}
-                onChange={(e) => setEnableRecordingDownload(e.target.checked)}
-              />
-              <span>Enable Call Recording Downloads</span>
-            </label>
-            <p className="help-text">
-              When enabled, users can download call recordings. When disabled, only an indicator shows if a recording exists.
-            </p>
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Call Recording Downloads</h3>
+                  <p className="feature-description">
+                    Allow users to download call recordings from the call history
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enableCallRecordingDownload}
+                    onChange={() => handleFeatureToggle('enableCallRecordingDownload')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Auto Refresh</h3>
+                  <p className="feature-description">
+                    Automatically refresh data every 60 seconds
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enableAutoRefresh}
+                    onChange={() => handleFeatureToggle('enableAutoRefresh')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>User Availability</h3>
+                  <p className="feature-description">
+                    Display real-time user availability status
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enableUserAvailability}
+                    onChange={() => handleFeatureToggle('enableUserAvailability')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>User Status</h3>
+                  <p className="feature-description">
+                    Show user online/offline status indicators
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enableUserStatus}
+                    onChange={() => handleFeatureToggle('enableUserStatus')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Call Cost Display</h3>
+                  <p className="feature-description">
+                    Display call cost information in call history
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.showCallCost}
+                    onChange={() => handleFeatureToggle('showCallCost')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Audio Upload</h3>
+                  <p className="feature-description">
+                    Enable uploading custom audio files
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enableAudioUpload}
+                    onChange={() => handleFeatureToggle('enableAudioUpload')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Playlist Management</h3>
+                  <p className="feature-description">
+                    Allow creation and management of audio playlists
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enablePlaylistManagement}
+                    onChange={() => handleFeatureToggle('enablePlaylistManagement')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Timezone Information</h3>
+                  <p className="feature-description">
+                    Display timezone details for users
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.showTimezoneInfo}
+                    onChange={() => handleFeatureToggle('showTimezoneInfo')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-header">
+                <div className="feature-info">
+                  <h3>Advanced Filters</h3>
+                  <p className="feature-description">
+                    Enable advanced filtering options in lists
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={features.enableAdvancedFilters}
+                    onChange={() => handleFeatureToggle('enableAdvancedFilters')}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
 
           {saveSuccess && (

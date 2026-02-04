@@ -12,6 +12,14 @@ export interface ApiAuthSettings {
 
 export interface AppFeatures {
   enableCallRecordingDownload: boolean;
+  enableAutoRefresh: boolean;
+  enableUserAvailability: boolean;
+  enableUserStatus: boolean;
+  showCallCost: boolean;
+  enableAudioUpload: boolean;
+  enablePlaylistManagement: boolean;
+  showTimezoneInfo: boolean;
+  enableAdvancedFilters: boolean;
 }
 
 export const saveApiSettings = (settings: ApiAuthSettings): void => {
@@ -51,9 +59,30 @@ export const saveAppFeatures = (features: AppFeatures): void => {
 export const getAppFeatures = (): AppFeatures => {
   try {
     const stored = localStorage.getItem(FEATURES_KEY);
-    return stored ? JSON.parse(stored) : { enableCallRecordingDownload: false };
+    const defaultFeatures: AppFeatures = {
+      enableCallRecordingDownload: false,
+      enableAutoRefresh: true,
+      enableUserAvailability: true,
+      enableUserStatus: true,
+      showCallCost: false,
+      enableAudioUpload: true,
+      enablePlaylistManagement: true,
+      showTimezoneInfo: true,
+      enableAdvancedFilters: true,
+    };
+    return stored ? { ...defaultFeatures, ...JSON.parse(stored) } : defaultFeatures;
   } catch (error) {
     console.error('Error loading app features:', error);
-    return { enableCallRecordingDownload: false };
+    return {
+      enableCallRecordingDownload: false,
+      enableAutoRefresh: true,
+      enableUserAvailability: true,
+      enableUserStatus: true,
+      showCallCost: false,
+      enableAudioUpload: true,
+      enablePlaylistManagement: true,
+      showTimezoneInfo: true,
+      enableAdvancedFilters: true,
+    };
   }
 };
