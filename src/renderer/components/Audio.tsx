@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
 import { getAppFeatures } from '../utils/storage';
 
@@ -53,8 +53,22 @@ function Audio() {
   });
   const [soundSearchTerm, setSoundSearchTerm] = useState('');
   const [features, setFeatures] = useState(getAppFeatures());
+  
+  const mountedRef = useRef(true);
+  const apiInitializedRef = useRef(false);
 
   useEffect(() => {
+    mountedRef.current = true;
+    
+    // Initialize API client once
+    if (!apiInitializedRef.current) {
+      if (!initializeApiClient()) {
+        setError('API settings not configured. Please configure in Settings.');
+        return;
+      }
+      apiInitializedRef.current = true;
+    }
+    
     // Load feature settings
     setFeatures(getAppFeatures());
     
@@ -63,14 +77,13 @@ function Audio() {
     } else {
       fetchPlaylists();
     }
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, [activeTab]);
 
   const fetchSounds = async () => {
-    if (!initializeApiClient()) {
-      setError('API settings not configured. Please configure in Settings.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     
@@ -78,24 +91,27 @@ function Audio() {
       const response = await window.electron.api.get<ApiResponse<Sound>>('/voip/sound');
       
       if (response.status_code === 200 && response.result) {
-        setSounds(response.result);
+        if (mountedRef.current) {
+          setSounds(response.result);
+        }
       } else {
-        setError(`Failed to load sounds: ${response.status_message || 'Unknown error'}`);
+        if (mountedRef.current) {
+          setError(`Failed to load sounds: ${response.status_message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching sounds:', err);
-      setError(err.message || 'Failed to fetch sounds');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to fetch sounds');
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const fetchPlaylists = async () => {
-    if (!initializeApiClient()) {
-      setError('API settings not configured. Please configure in Settings.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     
@@ -103,22 +119,30 @@ function Audio() {
       const response = await window.electron.api.get<ApiResponse<Playlist>>('/voip/playlist');
       
       if (response.status_code === 200 && response.result) {
-        setPlaylists(response.result);
+        if (mountedRef.current) {
+          setPlaylists(response.result);
+        }
       } else {
-        setError(`Failed to load playlists: ${response.status_message || 'Unknown error'}`);
+        if (mountedRef.current) {
+          setError(`Failed to load playlists: ${response.status_message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching playlists:', err);
-      setError(err.message || 'Failed to fetch playlists');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to fetch playlists');
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
-  const getSoundNameByUuid = (uuid: string): string => {
+  const getSoundNameByUuid = useCallback((uuid: string): string => {
     const sound = sounds.find(s => s.uuid === uuid);
     return sound ? sound.name : 'Unknown';
-  };
+  }, [sounds]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;

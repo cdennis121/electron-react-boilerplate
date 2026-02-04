@@ -83,6 +83,15 @@ ipcMain.handle('api-patch', async (_event, url, data) => {
   }
 });
 
+ipcMain.handle('api-get-customers', async (_event) => {
+  try {
+    const data = await apiClient.getWithoutAuthFor('/account/reseller');
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('download-file', async (_event, url, filename) => {
   try {
     if (mainWindow) {

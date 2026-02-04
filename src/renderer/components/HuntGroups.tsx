@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
 
 interface HuntGroup {
@@ -36,8 +36,13 @@ function HuntGroups() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [togglingUser, setTogglingUser] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
+  
+  const mountedRef = useRef(true);
+  const usersLoadedRef = useRef(false);
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     const fetchHuntGroups = async () => {
       // Initialize API client with saved settings
       if (!initializeApiClient()) {
@@ -53,55 +58,45 @@ function HuntGroups() {
         const response = await window.electron.api.get<ApiResponse>('/voip/group');
         
         if (response.status_code === 200 && response.result) {
-          setHuntGroups(response.result);
+          if (mountedRef.current) {
+            setHuntGroups(response.result);
+          }
         } else {
-          setError(`API Error: ${response.status_message || 'Unknown error'}`);
+          if (mountedRef.current) {
+            setError(`API Error: ${response.status_message || 'Unknown error'}`);
+          }
         }
       } catch (err: any) {
         console.error('Error fetching hunt groups:', err);
-        setError(err.message || 'Failed to fetch hunt groups');
-        
-        // Fallback to mock data for demonstration
-        setHuntGroups([
-          { 
-            name: 'Sales Team', 
-            extension_number: 2001,
-            members: [],
-            uuid: '1'
-          },
-          { 
-            name: 'Support Team', 
-            extension_number: 2002,
-            members: [],
-            uuid: '2'
-          },
-          { 
-            name: 'Technical Team', 
-            extension_number: 2003,
-            members: [],
-            uuid: '3'
-          },
-        ]);
+        if (mountedRef.current) {
+          setError(err.message || 'Failed to fetch hunt groups');
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchHuntGroups();
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const handleGroupChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const groupUuid = event.target.value;
     setSelectedGroup(groupUuid);
     
-    if (groupUuid) {
+    if (groupUuid && !usersLoadedRef.current) {
       fetchUsers();
-    } else {
-      setUsers([]);
     }
   };
 
   const fetchUsers = async () => {
+    if (usersLoadedRef.current && users.length > 0) return;
+    
     setLoadingUsers(true);
     setError('');
     
@@ -109,15 +104,24 @@ function HuntGroups() {
       const response = await window.electron.api.get<UsersApiResponse>('/voip/user');
       
       if (response.status_code === 200 && response.result) {
-        setUsers(response.result);
+        if (mountedRef.current) {
+          setUsers(response.result);
+          usersLoadedRef.current = true;
+        }
       } else {
-        setError(`Failed to load users: ${response.status_message || 'Unknown error'}`);
+        if (mountedRef.current) {
+          setError(`Failed to load users: ${response.status_message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching users:', err);
-      setError(err.message || 'Failed to fetch users');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to fetch users');
+      }
     } finally {
-      setLoadingUsers(false);
+      if (mountedRef.current) {
+        setLoadingUsers(false);
+      }
     }
   };
 

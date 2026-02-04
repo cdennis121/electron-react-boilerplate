@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
 
 interface CallQueue {
@@ -39,8 +39,12 @@ function CallQueues() {
   const [maxNoAnswer, setMaxNoAnswer] = useState(60);
   const [strategy, setStrategy] = useState('ringall');
   const [duration, setDuration] = useState(15);
+  
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     const fetchCallQueues = async () => {
       // Initialize API client with saved settings
       if (!initializeApiClient()) {
@@ -55,19 +59,31 @@ function CallQueues() {
         const response = await window.electron.api.get<ApiResponse>('/voip/queue-group');
         
         if (response.status_code === 200 && response.result) {
-          setCallQueues(response.result);
+          if (mountedRef.current) {
+            setCallQueues(response.result);
+          }
         } else {
-          setError(`Failed to load call queues: ${response.status_message || 'Unknown error'}`);
+          if (mountedRef.current) {
+            setError(`Failed to load call queues: ${response.status_message || 'Unknown error'}`);
+          }
         }
       } catch (err: any) {
         console.error('Error fetching call queues:', err);
-        setError(err.message || 'Failed to fetch call queues');
+        if (mountedRef.current) {
+          setError(err.message || 'Failed to fetch call queues');
+        }
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
     fetchCallQueues();
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const handleQueueChange = (event: React.ChangeEvent<HTMLSelectElement>) => {

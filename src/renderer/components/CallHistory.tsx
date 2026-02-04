@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
 import { getAppFeatures } from '../utils/storage';
 
@@ -39,25 +39,29 @@ function CallHistory() {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterAnswered, setFilterAnswered] = useState('all');
-  const [downloadEnabled, setDownloadEnabled] = useState(false);
   const [features, setFeatures] = useState(getAppFeatures());
+  
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+    
     // Load feature settings
     const loadedFeatures = getAppFeatures();
     setFeatures(loadedFeatures);
-    setDownloadEnabled(loadedFeatures.enableCallRecordingDownload);
     
-    fetchCallHistory();
+    if (initializeApiClient()) {
+      fetchCallHistory();
+    } else {
+      setError('API settings not configured. Please configure in Settings.');
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchCallHistory = async () => {
-    // Initialize API client with saved settings
-    if (!initializeApiClient()) {
-      setError('API settings not configured. Please configure in Settings.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     
@@ -75,15 +79,23 @@ function CallHistory() {
       );
       
       if (response.status_code === 200 && response.result) {
-        setCalls(response.result);
+        if (mountedRef.current) {
+          setCalls(response.result);
+        }
       } else {
-        setError(`Failed to load call history: ${response.status_message || 'Unknown error'}`);
+        if (mountedRef.current) {
+          setError(`Failed to load call history: ${response.status_message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching call history:', err);
-      setError(err.message || 'Failed to fetch call history');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to fetch call history');
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -98,29 +110,32 @@ function CallHistory() {
     return `${mins}m ${secs}s`;
   };
 
-  const filteredCalls = calls.filter(call => {
-    // Search filter
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = !searchTerm || 
-      call.from?.number?.toLowerCase().includes(searchLower) ||
-      call.to?.number?.toLowerCase().includes(searchLower) ||
-      call.from?.nickname?.toLowerCase().includes(searchLower) ||
-      call.to?.nickname?.toLowerCase().includes(searchLower);
+  // Memoize filtered calls to prevent recalculation on every render
+  const filteredCalls = useMemo(() => {
+    return calls.filter(call => {
+      // Search filter
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        call.from?.number?.toLowerCase().includes(searchLower) ||
+        call.to?.number?.toLowerCase().includes(searchLower) ||
+        call.from?.nickname?.toLowerCase().includes(searchLower) ||
+        call.to?.nickname?.toLowerCase().includes(searchLower);
 
-    // Type filter
-    const matchesType = filterType === 'all' || call.call_type?.toLowerCase() === filterType.toLowerCase();
+      // Type filter
+      const matchesType = filterType === 'all' || call.call_type?.toLowerCase() === filterType.toLowerCase();
 
-    // Status filter
-    const callStatus = (call.status || call.disposition)?.toLowerCase();
-    const matchesStatus = filterStatus === 'all' || callStatus === filterStatus.toLowerCase();
+      // Status filter
+      const callStatus = (call.status || call.disposition)?.toLowerCase();
+      const matchesStatus = filterStatus === 'all' || callStatus === filterStatus.toLowerCase();
 
-    // Answered filter
-    const matchesAnswered = filterAnswered === 'all' || 
-      (filterAnswered === 'answered' && call.answered) ||
-      (filterAnswered === 'unanswered' && !call.answered);
+      // Answered filter
+      const matchesAnswered = filterAnswered === 'all' || 
+        (filterAnswered === 'answered' && call.answered) ||
+        (filterAnswered === 'unanswered' && !call.answered);
 
-    return matchesSearch && matchesType && matchesStatus && matchesAnswered;
-  });
+      return matchesSearch && matchesType && matchesStatus && matchesAnswered;
+    });
+  }, [calls, searchTerm, filterType, filterStatus, filterAnswered]);
 
   const handleDownloadRecording = async (callUuid: string) => {
     try {
@@ -241,7 +256,7 @@ function CallHistory() {
                     )}
                     <td>
                       {call.has_recording ? (
-                        downloadEnabled ? (
+                        features.enableCallRecordingDownload ? (
                           <button 
                             className="download-icon-btn"
                             onClick={() => handleDownloadRecording(call.uuid)}

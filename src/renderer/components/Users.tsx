@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { initializeApiClient } from '../utils/apiClient';
 import { getAppFeatures } from '../utils/storage';
 
@@ -66,17 +67,45 @@ function Users() {
   const [userAvailabilities, setUserAvailabilities] = useState<UserAvailability[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [settingsNotConfigured, setSettingsNotConfigured] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [features, setFeatures] = useState(getAppFeatures());
+  
+  // Refs to avoid stale closures in intervals
+  const featuresRef = useRef(features);
+  const usersRef = useRef(users);
+  const mountedRef = useRef(true);
+  
+  // Keep refs in sync
+  useEffect(() => {
+    featuresRef.current = features;
+  }, [features]);
+  
+  useEffect(() => {
+    usersRef.current = users;
+  }, [users]);
 
   useEffect(() => {
-    // Load feature settings
-    setFeatures(getAppFeatures());
+    mountedRef.current = true;
     
-    fetchUsers();
-    if (features.enableUserStatus) {
-      fetchUserStatuses();
+    // Load feature settings
+    const loadedFeatures = getAppFeatures();
+    setFeatures(loadedFeatures);
+    
+    // Initialize once and fetch data
+    if (initializeApiClient()) {
+      fetchUsers();
+      if (loadedFeatures.enableUserStatus) {
+        fetchUserStatuses();
+      }
+    } else {
+      setError('API settings not configured. Please configure in Settings.');
+      setSettingsNotConfigured(true);
     }
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -90,32 +119,27 @@ function Users() {
     if (!features.enableAutoRefresh) return;
     
     const statusInterval = setInterval(() => {
-      if (features.enableUserStatus) {
+      if (featuresRef.current.enableUserStatus) {
         fetchUserStatuses();
       }
     }, 60000);
 
     return () => clearInterval(statusInterval);
-  }, [features.enableAutoRefresh, features.enableUserStatus]);
+  }, [features.enableAutoRefresh]);
 
   useEffect(() => {
     if (!features.enableAutoRefresh || users.length === 0) return;
     
     const availabilityInterval = setInterval(() => {
-      if (features.enableUserAvailability) {
+      if (featuresRef.current.enableUserAvailability && usersRef.current.length > 0) {
         fetchUserAvailabilities();
       }
     }, 60000);
 
     return () => clearInterval(availabilityInterval);
-  }, [users, features.enableAutoRefresh, features.enableUserAvailability]);
+  }, [features.enableAutoRefresh, users.length > 0]);
 
   const fetchUsers = async () => {
-    if (!initializeApiClient()) {
-      setError('API settings not configured. Please configure in Settings.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     
@@ -123,84 +147,99 @@ function Users() {
       const response = await window.electron.api.get<ApiResponse>('/voip/user');
       
       if (response.status_code === 200 && response.result) {
-        setUsers(response.result);
+        if (mountedRef.current) {
+          setUsers(response.result);
+        }
       } else {
-        setError(`Failed to load users: ${response.status_message || 'Unknown error'}`);
+        if (mountedRef.current) {
+          setError(`Failed to load users: ${response.status_message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching users:', err);
-      setError(err.message || 'Failed to fetch users');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to fetch users');
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const fetchUserStatuses = async () => {
-    if (!initializeApiClient()) {
-      return;
-    }
-
     try {
       const response = await window.electron.api.get<{ result: UserStatus[]; status_code: number; status_message: string; }>('/voip/user-status');
       
       if (response.status_code === 200 && response.result) {
-        setUserStatuses(response.result);
+        if (mountedRef.current) {
+          setUserStatuses(response.result);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching user statuses:', err);
     }
   };
 
-  const getUserStatus = (uuid: string): string => {
+  const getUserStatus = useCallback((uuid: string): string => {
     const userStatus = userStatuses.find(s => s.uuid === uuid);
     return userStatus ? userStatus.status : 'unknown';
-  };
+  }, [userStatuses]);
 
   const fetchUserAvailabilities = async () => {
-    if (!initializeApiClient()) {
-      return;
-    }
-
+    const currentUsers = usersRef.current;
+    if (currentUsers.length === 0) return;
+    
     try {
-      const availabilities = await Promise.all(
-        users.map(async (user) => {
-          try {
-            const response = await window.electron.api.get<{ result: { available: boolean }; status_code: number; }>(
-              `/voip/user/${user.uuid}/availability`
-            );
-            console.log(`Availability for ${user.display_name} (${user.uuid}):`, response);
-            return {
-              uuid: user.uuid,
-              available: response.status_code === 200 ? response.result.available : false
-            };
-          } catch (err) {
-            console.error(`Error fetching availability for ${user.display_name}:`, err);
-            return { uuid: user.uuid, available: false };
-          }
-        })
-      );
-      console.log('All availabilities:', availabilities);
-      setUserAvailabilities(availabilities);
+      // Batch requests in groups of 10 to avoid overwhelming the API
+      const batchSize = 10;
+      const allAvailabilities: UserAvailability[] = [];
+      
+      for (let i = 0; i < currentUsers.length; i += batchSize) {
+        const batch = currentUsers.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (user) => {
+            try {
+              const response = await window.electron.api.get<{ result: { available: boolean }; status_code: number; }>(
+                `/voip/user/${user.uuid}/availability`
+              );
+              return {
+                uuid: user.uuid,
+                available: response.status_code === 200 ? response.result.available : false
+              };
+            } catch (err) {
+              return { uuid: user.uuid, available: false };
+            }
+          })
+        );
+        allAvailabilities.push(...batchResults);
+      }
+      
+      if (mountedRef.current) {
+        setUserAvailabilities(allAvailabilities);
+      }
     } catch (err: any) {
       console.error('Error fetching user availabilities:', err);
     }
   };
-
-  const getUserAvailability = (uuid: string): boolean => {
+  const getUserAvailability = useCallback((uuid: string): boolean => {
     const userAvail = userAvailabilities.find(a => a.uuid === uuid);
     return userAvail ? userAvail.available : false;
-  };
+  }, [userAvailabilities]);
 
-  const filteredUsers = users.filter(user => {
-    const search = searchTerm.toLowerCase();
-    return (
-      user.display_name.toLowerCase().includes(search) ||
-      user.extension.toString().includes(search) ||
-      user.user_name.toLowerCase().includes(search) ||
-      user.timezone?.toLowerCase().includes(search) ||
-      user.country_code?.toLowerCase().includes(search)
-    );
-  });
+  // Memoize filtered users to prevent recalculation on every render
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const search = searchTerm.toLowerCase();
+      return (
+        user.display_name.toLowerCase().includes(search) ||
+        user.extension.toString().includes(search) ||
+        user.user_name.toLowerCase().includes(search) ||
+        user.timezone?.toLowerCase().includes(search) ||
+        user.country_code?.toLowerCase().includes(search)
+      );
+    });
+  }, [users, searchTerm]);
 
   return (
     <div className="page-container">
@@ -209,7 +248,16 @@ function Users() {
         <p>View and manage user accounts</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <div className="error-message">
+          {error}
+          {settingsNotConfigured && (
+            <Link to="/settings" className="btn-primary" style={{ marginLeft: '15px', display: 'inline-block', textDecoration: 'none' }}>
+              Open Settings
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="filters-container">
         <input

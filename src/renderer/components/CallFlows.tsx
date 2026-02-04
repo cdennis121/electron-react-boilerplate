@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { initializeApiClient } from '../utils/apiClient';
 
 interface FlowModule {
@@ -80,19 +80,29 @@ function CallFlows() {
   const [callQueues, setCallQueues] = useState<CallQueue[]>([]);
   const [voicemails, setVoicemails] = useState<Voicemail[]>([]);
 
+  const mountedRef = useRef(true);
+
   useEffect(() => {
-    fetchCallFlows();
-    fetchHuntGroups();
-    fetchCallQueues();
-    fetchVoicemails();
+    mountedRef.current = true;
+    
+    if (initializeApiClient()) {
+      // Fetch all data in parallel for better performance
+      Promise.all([
+        fetchCallFlows(),
+        fetchHuntGroups(),
+        fetchCallQueues(),
+        fetchVoicemails()
+      ]);
+    } else {
+      setError('API settings not configured. Please configure in Settings.');
+    }
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchCallFlows = async () => {
-    if (!initializeApiClient()) {
-      setError('API settings not configured. Please configure in Settings.');
-      return;
-    }
-
     setLoading(true);
     setError('');
     
@@ -100,25 +110,33 @@ function CallFlows() {
       const response = await window.electron.api.get<ApiResponse>('/voip/flow');
       
       if (response.status_code === 200 && response.result) {
-        setCallFlows(response.result);
+        if (mountedRef.current) {
+          setCallFlows(response.result);
+        }
       } else {
-        setError(`Failed to load call flows: ${response.status_message || 'Unknown error'}`);
+        if (mountedRef.current) {
+          setError(`Failed to load call flows: ${response.status_message || 'Unknown error'}`);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching call flows:', err);
-      setError(err.message || 'Failed to fetch call flows');
+      if (mountedRef.current) {
+        setError(err.message || 'Failed to fetch call flows');
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   const fetchHuntGroups = async () => {
-    if (!initializeApiClient()) return;
-    
     try {
       const response = await window.electron.api.get<GroupResponse>('/voip/group');
       if (response.status_code === 200 && response.result) {
-        setHuntGroups(response.result);
+        if (mountedRef.current) {
+          setHuntGroups(response.result);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching hunt groups:', err);
@@ -126,12 +144,12 @@ function CallFlows() {
   };
 
   const fetchCallQueues = async () => {
-    if (!initializeApiClient()) return;
-    
     try {
       const response = await window.electron.api.get<QueueResponse>('/voip/queue-group');
       if (response.status_code === 200 && response.result) {
-        setCallQueues(response.result);
+        if (mountedRef.current) {
+          setCallQueues(response.result);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching call queues:', err);
@@ -139,12 +157,12 @@ function CallFlows() {
   };
 
   const fetchVoicemails = async () => {
-    if (!initializeApiClient()) return;
-    
     try {
       const response = await window.electron.api.get<VoicemailResponse>('/voip/mailbox');
       if (response.status_code === 200 && response.result) {
-        setVoicemails(response.result);
+        if (mountedRef.current) {
+          setVoicemails(response.result);
+        }
       }
     } catch (err: any) {
       console.error('Error fetching mailboxes:', err);

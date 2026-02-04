@@ -20,8 +20,16 @@ class ApiClient {
     // Request interceptor to add auth headers
     this.axiosInstance.interceptors.request.use(
       (config) => {
+        // Skip adding X-Auth-For if explicitly excluded in config
+        const skipAuthFor = config.headers?.['X-Skip-Auth-For'];
+        if (skipAuthFor) {
+          delete config.headers['X-Skip-Auth-For'];
+        }
+        
         if (this.settings) {
-          config.headers['X-Auth-For'] = this.settings.authFor;
+          if (!skipAuthFor) {
+            config.headers['X-Auth-For'] = this.settings.authFor;
+          }
           config.headers['X-Auth-Reseller'] = this.settings.authReseller;
           config.headers['X-Auth-Password'] = this.settings.authPassword;
           config.headers['X-Auth-User'] = this.settings.authUser;
@@ -72,6 +80,20 @@ class ApiClient {
 
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
     const response = await this.axiosInstance.patch<T>(url, data, config);
+    return response.data;
+  }
+
+  async getWithoutAuthFor<T = any>(url: string, config?: AxiosRequestConfig) {
+    // Use a special header flag to tell interceptor to skip X-Auth-For
+    const tempConfig = {
+      ...config,
+      headers: {
+        ...config?.headers,
+        'X-Skip-Auth-For': 'true'
+      }
+    };
+    
+    const response = await this.axiosInstance.get<T>(url, tempConfig);
     return response.data;
   }
 }

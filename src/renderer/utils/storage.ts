@@ -1,6 +1,7 @@
 // Utility functions for storing API auth details
 const STORAGE_KEY = 'api_auth_settings';
 const FEATURES_KEY = 'app_features';
+const CUSTOMER_KEY = 'selected_customer';
 
 export interface ApiAuthSettings {
   apiUrl: string;
@@ -84,5 +85,30 @@ export const getAppFeatures = (): AppFeatures => {
       showTimezoneInfo: true,
       enableAdvancedFilters: true,
     };
+  }
+};
+
+export const saveSelectedCustomer = (customerUuid: string): void => {
+  try {
+    localStorage.setItem(CUSTOMER_KEY, customerUuid);
+  } catch (error) {
+    console.error('Error saving selected customer:', error);
+  }
+};
+
+export const getSelectedCustomer = (): string | null => {
+  try {
+    return localStorage.getItem(CUSTOMER_KEY);
+  } catch (error) {
+    console.error('Error loading selected customer:', error);
+    return null;
+  }
+};
+
+export const clearSelectedCustomer = (): void => {
+  try {
+    localStorage.removeItem(CUSTOMER_KEY);
+  } catch (error) {
+    console.error('Error clearing selected customer:', error);
   }
 };

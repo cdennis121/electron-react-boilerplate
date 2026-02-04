@@ -75,6 +75,13 @@ const electronHandler = {
         throw new Error(result.error);
       }
     },
+    async getCustomers<T = any>(): Promise<T> {
+      const result = await ipcRenderer.invoke('api-get-customers');
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
   },
 };
 
