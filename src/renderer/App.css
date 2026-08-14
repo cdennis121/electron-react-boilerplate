@@ -659,10 +659,202 @@ input:checked + .slider.loading:before {
   background-size: 18px;
 }
 
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.filter-field label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5a6c7d;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.date-range-filters {
+  margin-bottom: 12px;
+}
+
+.date-range-filters .input-field,
+.date-range-filters .btn-primary {
+  width: 100%;
+}
+
+.filter-field-actions .btn-primary {
+  flex: none;
+  padding: 12px 16px;
+}
+
+.date-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.preset-btn {
+  background: #f4f7fb;
+  color: #2c3e50;
+  border: 1px solid #e0e6ed;
+  box-shadow: none;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.preset-btn:hover {
+  background: #e8f4fc;
+  color: #1f6dad;
+  border-color: #3498db;
+  transform: none;
+  box-shadow: none;
+}
+
+.download-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f4f8;
+}
+
+.download-toolbar .btn-primary,
+.download-toolbar .btn-secondary {
+  flex: none;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+}
+
+.download-toolbar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.download-queue-panel {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.download-queue-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.download-queue-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #1a252f;
+}
+
+.download-queue-summary {
+  color: #5a6c7d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.download-queue-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.download-queue-progress {
+  height: 8px;
+  background: #eef2f6;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.download-queue-progress-bar {
+  height: 100%;
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  transition: width 0.25s ease;
+}
+
+.download-queue-list {
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+}
+
+.queue-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f4f8;
+  font-size: 0.88rem;
+}
+
+.queue-item:last-child {
+  border-bottom: none;
+}
+
+.queue-item-label {
+  color: #2c3e50;
+}
+
+.queue-item-error {
+  grid-column: 1 / -1;
+  color: #c0392b;
+  font-size: 0.8rem;
+}
+
+.badge-queue-queued {
+  background: #eef2f6;
+  color: #5a6c7d;
+}
+
+.badge-queue-downloading {
+  background: #eaf4fc;
+  color: #1f6dad;
+}
+
+.badge-queue-completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge-queue-failed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.checkbox-col {
+  width: 42px;
+  text-align: center;
+}
+
+.checkbox-col input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.call-history-table tbody tr.row-selected {
+  background-color: #eaf4fc;
+}
+
 .filter-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
+  margin-bottom: 16px;
 }
 
 .results-count {
@@ -711,6 +903,11 @@ input:checked + .slider.loading:before {
 
 .call-history-table tbody tr:hover {
   background-color: #f8fafc;
+}
+
+.call-history-table tbody tr.row-selected,
+.call-history-table tbody tr.row-selected:hover {
+  background-color: #eaf4fc;
 }
 
 .call-history-table tbody tr:last-child {
@@ -805,6 +1002,12 @@ input:checked + .slider.loading:before {
 
 .download-icon-btn:active {
   transform: scale(0.95);
+}
+
+.download-icon-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Tabs Styling */

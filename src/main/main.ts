@@ -9,9 +9,12 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
+import fs from 'fs';
+import { pipeline } from 'stream/promises';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import axios from 'axios';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { apiClient } from './apiClient';
@@ -92,13 +95,38 @@ ipcMain.handle('api-get-customers', async (_event) => {
   }
 });
 
+const sanitizeFilename = (name: string): string =>
+  String(name || 'recording.mp3')
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/[. ]+$/, '') || 'recording.mp3';
+
+const uniqueFilePath = (directory: string, filename: string): string => {
+  const safeName = sanitizeFilename(filename);
+  let savePath = path.join(directory, safeName);
+  if (!fs.existsSync(savePath)) {
+    return savePath;
+  }
+
+  const ext = path.extname(safeName);
+  const base = path.basename(safeName, ext);
+  let counter = 1;
+  while (fs.existsSync(savePath)) {
+    savePath = path.join(directory, `${base} (${counter})${ext}`);
+    counter += 1;
+  }
+  return savePath;
+};
+
 ipcMain.handle('download-file', async (_event, url, filename) => {
   try {
-    if (mainWindow) {
-      mainWindow.webContents.downloadURL(url);
-      return { success: true };
-    }
-    return { success: false, error: 'No window available' };
+    const downloadDir = app.getPath('downloads');
+    const savePath = uniqueFilePath(downloadDir, filename);
+    const response = await axios.get(url, {
+      responseType: 'stream',
+      timeout: 0,
+    });
+    await pipeline(response.data, fs.createWriteStream(savePath));
+    return { success: true, path: savePath };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
